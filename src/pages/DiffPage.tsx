@@ -14,6 +14,7 @@ const DiffPage: React.FC = () => {
   const [v2, setV2] = useState<number | null>(null);
   const [comparison, setComparison] = useState<Comparison | TextDiffResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<'comparison' | 'diff'>('comparison');
 
   const handleCompare = async () => {
     if (!currentDocument || v1 === null || v2 === null) {
@@ -23,10 +24,18 @@ const DiffPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await documentApi.compareVersions(currentDocument.name, v1, v2);
-      setComparison(response.data);
-    } catch (error) {
-      toast.error('Failed to compare versions');
+      if (viewMode === 'diff') {
+        // Fetch text diff
+        const response = await documentApi.getTextDiff(currentDocument.name, v1, v2);
+        setComparison(response.data);
+      } else {
+        // Fetch comparison
+        const response = await documentApi.compareVersions(currentDocument.name, v1, v2);
+        setComparison(response.data);
+      }
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.error || 'Failed to compare versions';
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -86,13 +95,31 @@ const DiffPage: React.FC = () => {
         </div>
       </div>
 
-      <Button
-        onClick={handleCompare}
-        loading={loading}
-        disabled={v1 === null || v2 === null}
-      >
-        Compare
-      </Button>
+      <div className="flex gap-4 items-center">
+        <div>
+          <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+            View Mode
+          </label>
+          <select
+            value={viewMode}
+            onChange={(e) => setViewMode(e.target.value as 'comparison' | 'diff')}
+            className="p-2 border border-gray-300 dark:border-gray-600 rounded
+              bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          >
+            <option value="comparison">Comparison Summary</option>
+            <option value="diff">Detailed Text Diff</option>
+          </select>
+        </div>
+        
+        <Button
+          onClick={handleCompare}
+          loading={loading}
+          disabled={v1 === null || v2 === null}
+          className="mt-6"
+        >
+          Compare
+        </Button>
+      </div>
 
       {comparison && <DiffViewer comparison={comparison} isLoading={loading} />}
     </div>

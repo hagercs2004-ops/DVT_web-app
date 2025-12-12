@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import toast from 'react-hot-toast';
 
-interface UploadFile {
+export interface UploadFile {
   file: File;
   id: string;
   progress: number;

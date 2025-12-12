@@ -7,23 +7,30 @@ import type {
 } from '../types';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000',
+  baseURL: '',
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
 export const documentApi = {
-  getDocuments: (page = 1, limit = 10, q = '') =>
-    api.get<Document[]>('/api/documents', { params: { page, limit, q } }),
+  getDocuments: () =>
+    api.get<Document[]>('/api/documents'),
 
   getDocument: (name: string) =>
     api.get<Document>(`/api/document/${name}`),
 
-  uploadFile: (formData: FormData) =>
-    api.post('/api/upload', formData, {
+  getVersion: (name: string, version: number) =>
+    api.get(`/api/version/${name}/${version}`),
+
+  uploadFile: (file: File, documentName: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('document_name', documentName);
+    return api.post('/api/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    });
+  },
 
   deleteDocument: (name: string) =>
     api.delete(`/api/delete-document/${name}`),

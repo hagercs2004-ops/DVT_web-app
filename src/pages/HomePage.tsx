@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import UploadArea from '../components/upload/UploadArea';
 import UploadQueue from '../components/upload/UploadQueue';
 import DocumentGrid from '../components/document/DocumentGrid';
@@ -15,47 +15,52 @@ import { downloadFile } from '../utils/download';
 const HomePage: React.FC = () => {
   const { documents, setCurrentDocument } = useDocumentStore();
   const { addActivity } = useActivityStore();
-  const { queue, addToQueue, updateProgress, removeFromQueue, clearQueue } = useUploadQueue();
+  const { queue, addToQueue, updateProgress, updateError, removeFromQueue } = useUploadQueue();
   const [uploadLoading, setUploadLoading] = useState(false);
-  const { loading } = useDocuments();
+  const { loading, refetch } = useDocuments();
 
   const handleFilesSelected = async (files: File[]) => {
+    if (files.length === 0) return;
+    
     setUploadLoading(true);
+    const uploadFiles = files.map((file) => ({
+      file,
+      id: Math.random().toString(36).substr(2, 9),
+      progress: 0,
+    }));
+    
     addToQueue(files);
 
-    for (const file of files) {
-      const queueId = queue[queue.length]?.id;
+    for (let i = 0; i < uploadFiles.length; i++) {
+      const { file, id } = uploadFiles[i];
       try {
-        const formData = new FormData();
-        formData.append('file', file);
+        // Extract document name from filename (remove extension)
+        const documentName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
 
-        const xhr = new XMLHttpRequest();
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            const progress = (e.loaded / e.total) * 100;
-            updateProgress(queueId || '', progress);
-          }
+        updateProgress(id, 10);
+        
+        await documentApi.uploadFile(file, documentName);
+        
+        updateProgress(id, 100);
+        toast.success(`Uploaded ${file.name}`);
+        addActivity({
+          action: 'upload',
+          user: 'User',
+          document: file.name,
+          details: `Uploaded file: ${file.name}`,
         });
-
-        xhr.addEventListener('load', () => {
-          if (xhr.status === 200) {
-            toast.success(`Uploaded ${file.name}`);
-            addActivity({
-              action: 'upload',
-              details: `Uploaded file: ${file.name}`,
-            });
-            removeFromQueue(queueId || '');
-          }
-        });
-
-        xhr.open('POST', '/api/upload');
-        xhr.send(formData);
-      } catch (error) {
-        toast.error(`Failed to upload ${file.name}`);
+        
+        setTimeout(() => removeFromQueue(id), 1000);
+      } catch (error: any) {
+        const errorMsg = error?.response?.data?.message || 'Upload failed';
+        updateError(id, errorMsg);
+        toast.error(`Failed to upload ${file.name}: ${errorMsg}`);
       }
     }
 
     setUploadLoading(false);
+    // Refresh document list after upload
+    await refetch();
   };
 
   const handleDelete = async (name: string) => {
@@ -65,8 +70,11 @@ const HomePage: React.FC = () => {
         toast.success('Document deleted');
         addActivity({
           action: 'delete',
+          user: 'User',
+          document: name,
           details: `Deleted document: ${name}`,
         });
+        await refetch();
       } catch (error) {
         toast.error('Failed to delete document');
       }
@@ -79,6 +87,8 @@ const HomePage: React.FC = () => {
       downloadFile(response.data, name);
       addActivity({
         action: 'download',
+        user: 'User',
+        document: name,
         details: `Downloaded: ${name}`,
       });
     } catch (error) {

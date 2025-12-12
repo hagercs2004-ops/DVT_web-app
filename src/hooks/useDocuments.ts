@@ -1,30 +1,38 @@
 import { useEffect, useState } from 'react';
 import { useDocumentStore } from '../stores/documentStore';
 import { documentApi } from '../api/client';
+import type { Document } from '../types';
 
-export const useDocuments = (page: number = 1, limit: number = 10) => {
-  const { setDocuments, setTotalPages, searchQuery } = useDocumentStore();
+export const useDocuments = () => {
+  const { setDocuments, searchQuery } = useDocumentStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchDocuments = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await documentApi.getDocuments(page, limit, searchQuery);
-        setDocuments(response.data);
-        // Calculate total pages from response
-        setTotalPages(Math.ceil((response.data.length || 10) / limit));
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch documents');
-      } finally {
-        setLoading(false);
+  const fetchDocuments = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await documentApi.getDocuments();
+      let documents = response.data;
+      
+      // Filter by search query on client side
+      if (searchQuery) {
+        documents = documents.filter((doc: Document) => 
+          doc.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
       }
-    };
+      
+      setDocuments(documents);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch documents');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchDocuments();
-  }, [page, limit, searchQuery, setDocuments, setTotalPages]);
+  }, [searchQuery]);
 
-  return { loading, error };
+  return { loading, error, refetch: fetchDocuments };
 };

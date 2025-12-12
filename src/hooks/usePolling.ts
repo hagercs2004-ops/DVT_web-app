@@ -11,7 +11,7 @@ export const usePolling = (interval: number = 5000) => {
 
     const poll = async () => {
       try {
-        const response = await documentApi.getDocuments(1, 100);
+        const response = await documentApi.getDocuments();
         setDocuments(response.data);
       } catch (error) {
         console.error('Polling error:', error);

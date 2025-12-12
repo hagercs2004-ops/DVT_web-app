@@ -12,27 +12,29 @@ export interface Version {
   file_size: number;
   file_extension: string;
   modified: boolean;
+  modification_detected?: boolean;
   diff_summary?: DiffSummary;
+  path?: string;
 }
 
 export interface DiffSummary {
   type: 'text' | 'image';
   additions?: number;
   deletions?: number;
+  total_changes?: number;
   changed_pixels?: number;
+  total_pixels?: number;
   change_percentage?: number;
 }
 
 export interface Comparison {
-  modified: boolean;
-  summary?: {
-    type: 'text' | 'image';
-    additions?: number;
-    deletions?: number;
-    changed_pixels?: number;
-    total_pixels?: number;
-    change_percentage?: number;
-  };
+  document_name: string;
+  version_1: number;
+  version_2: number;
+  file_type: string;
+  modifications_detected: boolean;
+  comparison_type: 'text' | 'image';
+  summary: DiffSummary;
 }
 
 export interface TextDiffResult {
@@ -50,15 +52,15 @@ export interface TextDiffResult {
 export interface TextDiffMetrics {
   additions: number;
   deletions: number;
-  unchanged: number;
-  context_lines: number;
   total_changes: number;
-  total_lines: number;
-  change_percentage: number;
-  severity: string;
-  added_characters: number;
-  removed_characters: number;
-  net_character_change: number;
+  unchanged?: number;
+  context_lines?: number;
+  total_lines?: number;
+  change_percentage?: number;
+  severity?: string;
+  added_characters?: number;
+  removed_characters?: number;
+  net_character_change?: number;
 }
 
 export interface User {

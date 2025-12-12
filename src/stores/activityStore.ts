@@ -16,7 +16,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
       activities: [
         {
           id: Math.random().toString(36).substr(2, 9),
-          timestamp: new Date(),
+          timestamp: new Date().toISOString(),
           ...activity,
         },
         ...state.activities,
